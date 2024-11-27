@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 
 export const ChatPage = () => {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [ws, setWs] = useState(null);
+  const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
@@ -13,49 +14,42 @@ export const ChatPage = () => {
     if (!token) {
       navigate("/login");
     } else {
-      connectWebSocket();
-    }
-    // Clean up on unmount
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-    };
-  }, [token]);
+      // Connect to the Socket.IO server
+      const newSocket = io("http://localhost:8000", {
+        query: { token: encodeURIComponent(token) },
+        transports: ["websocket"],
+      });
 
-  const connectWebSocket = () => {
-    const wsUrl = `ws://localhost:8000/ws/chat?token=${token}`; // Include token in query params
-    const socket = new WebSocket(wsUrl);
+      setSocket(newSocket);
 
-    socket.onopen = () => {
-      console.log("WebSocket connected");
-      setWs(socket);
-    };
+      newSocket.on("connect", () => {
+        console.log("Connected to Socket.IO server");
+      });
 
-    socket.onmessage = (event) => {
-      const messageData = JSON.parse(event.data);
-      if (messageData.type === "response") {
+      newSocket.on("response", (data) => {
         setMessages((prevMessages) => [
           ...prevMessages,
-          { sender: "bot", content: messageData.content },
+          { sender: "bot", content: data.message },
         ]);
-      }
-    };
+      });
 
-    socket.onclose = () => {
-      console.log("WebSocket disconnected");
-      // Optionally implement reconnection logic
-    };
+      newSocket.on("disconnect", () => {
+        console.log("Disconnected from Socket.IO server");
+      });
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-  };
+      newSocket.on("connect_error", (error) => {
+        console.error("Connection error:", error);
+      });
+
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, [token]);
 
   const sendMessage = () => {
-    if (ws && input.trim() !== "") {
-      const message = { type: "message", content: input };
-      ws.send(JSON.stringify(message));
+    if (socket && input.trim() !== "") {
+      socket.emit("message", { message: input });
       setMessages((prevMessages) => [
         ...prevMessages,
         { sender: "user", content: input },
