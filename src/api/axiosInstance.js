@@ -1,7 +1,7 @@
 // src/api/axiosInstance.js
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://neurotype-prod-backend.onrender.com";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
