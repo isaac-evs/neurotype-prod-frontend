@@ -18,7 +18,7 @@ export const ChatPage = () => {
       navigate("/login");
     } else {
       // Connect to the Socket.IO server
-      const newSocket = io("http://localhost:8000", {
+      const newSocket = io("https://neurotype-prod-backend.onrender.com", {
         query: { token: encodeURIComponent(token) },
         transports: ["websocket"],
       });
