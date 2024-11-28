@@ -10,6 +10,7 @@ const TOKEN_KEY = "access_token";
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // To handle initial loading state
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -25,10 +26,13 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
           console.error("Error fetching user:", error);
           setUser(null);
+          setToken(null);
+          localStorage.removeItem(TOKEN_KEY);
         }
       } else {
         setUser(null);
       }
+      setLoading(false);
     };
 
     fetchUser();
@@ -46,7 +50,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
